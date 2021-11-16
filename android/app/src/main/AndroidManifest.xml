@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.hackweek_flutter_presence_detection">
+    package="com.soundsmeow.flutter_fire_remote_controller">
    <application
-        android:label="hackweek_flutter_presence_detection"
+        android:label="flutter_fire_remote_controller"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

@@ -1,5 +1,12 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'player_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -8,7 +15,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
@@ -26,34 +32,16 @@ class MusicApp extends StatefulWidget {
 }
 
 class _MusicAppState extends State<MusicApp> {
-  //we will need some variables
-  bool playing = false; // at the begining we are not playing any song
-  IconData playBtn = Icons.play_arrow; // the main state of the play button icon
+  bool playing = false;
+  IconData playBtn = Icons.play_arrow;
 
   AudioPlayer player = AudioPlayer();
-  AudioCache? cache;
+  AudioCache cache = AudioCache();
   String? localFilePath;
   String? localAudioCacheURI;
 
   Duration position = Duration();
-  Duration musicLength = Duration(seconds: 4 * 60 + 19);
 
-  //we will create a custom slider
-  Widget slider() {
-    return SizedBox(
-      width: 200.0,
-      child: Slider.adaptive(
-          activeColor: Colors.blue.shade800,
-          inactiveColor: Colors.grey.shade300,
-          value: 100.0,
-          max: musicLength.inSeconds.toDouble(),
-          onChanged: (v) {
-            seekToSec(v.toInt());
-          }),
-    );
-  }
-
-  //let's create the seek function that will allow us to go to a certain position of the music
   void seekToSec(int sec) {
     Duration newPos = Duration(seconds: sec);
     player.seek(newPos);
@@ -62,28 +50,15 @@ class _MusicAppState extends State<MusicApp> {
   @override
   void initState() {
     super.initState();
+    localFilePath = 'waterfalls.mp3';
 
-    cache = AudioCache(fixedPlayer: player);
-
-    //now let's handle the audioplayer time
-
-    //this function will allow you to get the music duration
-    player.onDurationChanged.listen((Duration d) {
-      print('Max duration: $d');
-      setState(() {
-        musicLength = d;
-      });
-    });
-
-    //this function will allow us to move the cursor of the slider while we are playing the song
-    //   player.positionHandler = (p) {
-    //     setState(() {
-    //       position = p;
-    //     });
-    //   };
-
-    //   player.onAudioPositionChanged.listen((Duration ) { })
-    // }
+    if (kIsWeb) {
+      // Calls to Platform.isIOS fails on web
+      return;
+    }
+    if (Platform.isIOS) {
+      cache.fixedPlayer?.notificationService.startHeadlessService();
+    }
   }
 
   @override
@@ -165,22 +140,11 @@ class _MusicAppState extends State<MusicApp> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  "${position.inMinutes}:${position.inSeconds.remainder(60)}",
-                                  style: const TextStyle(
-                                    fontSize: 18.0,
-                                  ),
-                                ),
-                                slider(),
-                                Text(
-                                  "${musicLength.inMinutes}:${musicLength.inSeconds.remainder(60)}",
-                                  style: const TextStyle(
-                                    fontSize: 18.0,
-                                  ),
-                                ),
+                                PlayerWidget(url: localFilePath!),
                               ],
                             ),
                           ),
+                          /*
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -197,10 +161,8 @@ class _MusicAppState extends State<MusicApp> {
                                 iconSize: 62.0,
                                 color: Colors.blue.shade800,
                                 onPressed: () {
-                                  //here we will add the functionality of the play button
                                   if (!playing) {
-                                    //now let's play the song
-                                    cache?.play("samples.mp3");
+                                    cache.play("samples.mp3");
                                     setState(() {
                                       playBtn = Icons.pause;
                                       playing = true;
@@ -226,7 +188,7 @@ class _MusicAppState extends State<MusicApp> {
                                 ),
                               ),
                             ],
-                          )
+                          )*/
                         ],
                       ),
                     ),

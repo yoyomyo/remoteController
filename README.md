@@ -1,6 +1,6 @@
-# hackweek_flutter_presence_detection
+# Flutter Fire Remote Controller
 
-A new Flutter project.
+A cross-device remote controller built with Flutter and Firebase
 
 ## Getting Started
 

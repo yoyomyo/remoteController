@@ -1,5 +1,5 @@
-name: hackweek_flutter_presence_detection
-description: A new Flutter project.
+name: flutter_fire_remote_controller
+description: A cross-device remote controller built with Flutter and Firebase
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -35,6 +35,12 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   audioplayers: ^0.20.1
+  path_provider: ^2.0.1
+  http: ^0.13.1
+  flutter_web_plugins:
+    sdk: flutter
+  provider: ^6.0.1
+
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,6 @@
 {
-    "name": "hackweek_flutter_presence_detection",
-    "short_name": "hackweek_flutter_presence_detection",
+    "name": "flutter_fire_remote_controller",
+    "short_name": "flutter_fire_remote_controller",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
