@@ -45,8 +45,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   bool get _isPlaying => _playerState == PlayerState.PLAYING;
   bool get _isPaused => _playerState == PlayerState.PAUSED;
-  String get _durationText => _durationToString(_duration);
-  String get _positionText => _durationToString(_position);
+  String get _durationText => durationToString(_duration);
+  String get _positionText => durationToString(_position);
 
   _PlayerWidgetState(this.url, this.mode);
 
@@ -261,10 +261,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   // convert duration to [HH:]mm:ss format
-  String _durationToString(Duration? duration) {
-    if (_duration?.inHours == 0) {
-      return '${_duration?.inMinutes.remainder(60)}:${(_duration?.inSeconds.remainder(60))}';
+  String durationToString(Duration? duration) {
+    String twoDigits(n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration?.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration?.inSeconds.remainder(60));
+    if (duration?.inHours == 0) {
+      return '${twoDigitMinutes}:${twoDigitSeconds}';
     }
-    return '${_duration?.inHours}:${_duration?.inMinutes.remainder(60)}:${(_duration?.inSeconds.remainder(60))}';
+    return '${twoDigits(duration?.inHours)}:${twoDigitMinutes}:${twoDigitSeconds}';
   }
 }
