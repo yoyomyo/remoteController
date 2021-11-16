@@ -1,4 +1,4 @@
-// Copied from https://github.com/bluefireteam/audioplayers/blob/master/packages/audioplayers/example/lib/player_widget.dart
+// Adapted from https://github.com/bluefireteam/audioplayers/blob/master/packages/audioplayers/example/lib/player_widget.dart
 
 import 'dart:async';
 
@@ -28,6 +28,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   PlayerMode mode;
 
   late AudioPlayer _audioPlayer;
+  late AudioCache _audioCache;
   PlayerState? _audioPlayerState;
   // TODO: remove hard coded duration
   Duration? _duration = Duration(seconds: 2 * 60 + 26);
@@ -44,11 +45,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   bool get _isPlaying => _playerState == PlayerState.PLAYING;
   bool get _isPaused => _playerState == PlayerState.PAUSED;
-  String get _durationText => _duration?.toString().split('.').first ?? '';
-  String get _positionText => _position?.toString().split('.').first ?? '';
-
-  bool get _isPlayingThroughEarpiece =>
-      _playingRouteState == PlayingRoute.EARPIECE;
+  String get _durationText => _durationToString(_duration);
+  String get _positionText => _durationToString(_position);
 
   _PlayerWidgetState(this.url, this.mode);
 
@@ -82,8 +80,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
               padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
+                  Text(
+                    _position != null ? '$_positionText' : '00:00',
+                    style: const TextStyle(fontSize: 18.0),
+                  ),
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 2 / 3,
+                    width: MediaQuery.of(context).size.width / 2,
                     child: Slider(
                       onChanged: (v) {
                         final duration = _duration;
@@ -103,17 +105,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                               _duration!.inMilliseconds
                           : 0.0,
                     ),
-                  )
+                  ),
+                  Text(
+                    _duration != null ? _durationText : '00:00',
+                    style: const TextStyle(fontSize: 18.0),
+                  ),
                 ],
               ),
-            ),
-            Text(
-              _position != null
-                  ? '$_positionText / $_durationText'
-                  : _duration != null
-                      ? _durationText
-                      : 'no duration detected',
-              style: const TextStyle(fontSize: 24.0),
             ),
           ],
         ),
@@ -123,33 +121,34 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             IconButton(
               key: const Key('play_button'),
               onPressed: _isPlaying ? null : _play,
-              iconSize: 64.0,
+              iconSize: 48.0,
               icon: const Icon(Icons.play_arrow),
               color: Colors.blue.shade500,
             ),
             IconButton(
               key: const Key('pause_button'),
               onPressed: _isPlaying ? _pause : null,
-              iconSize: 64.0,
+              iconSize: 48.0,
               icon: const Icon(Icons.pause),
               color: Colors.blue.shade500,
             ),
             IconButton(
-              key: const Key('stop_button'),
+              key: const Key('rewind_button'),
               onPressed: _isPlaying || _isPaused ? _stop : null,
-              iconSize: 64.0,
-              icon: const Icon(Icons.stop),
+              iconSize: 48.0,
+              icon: const Icon(Icons.fast_rewind),
               color: Colors.blue.shade500,
             ),
           ],
         ),
-        //Text('State: $_audioPlayerState'),
+        Text('State: $_audioPlayerState'),
       ],
     );
   }
 
   void _initAudioPlayer() {
     _audioPlayer = AudioPlayer(mode: mode);
+    _audioCache = AudioCache(fixedPlayer: _audioPlayer);
 
     _durationSubscription = _audioPlayer.onDurationChanged.listen((duration) {
       setState(() => _duration = duration);
@@ -224,9 +223,15 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             _position!.inMilliseconds < _duration!.inMilliseconds)
         ? _position
         : null;
-    final result = await _audioPlayer.play(url, position: playPosition);
-    if (result == 1) {
-      setState(() => _playerState = PlayerState.PLAYING);
+    var result = 0;
+    if (kIsWeb) {
+      result = await _audioPlayer.play(url, position: playPosition);
+      if (result == 1) {
+        setState(() => _playerState = PlayerState.PLAYING);
+      }
+    } else {
+      _audioCache.play(url);
+      _playerState = PlayerState.PLAYING;
     }
 
     return result;
@@ -236,14 +241,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     final result = await _audioPlayer.pause();
     if (result == 1) {
       setState(() => _playerState = PlayerState.PAUSED);
-    }
-    return result;
-  }
-
-  Future<int> _earpieceOrSpeakersToggle() async {
-    final result = await _audioPlayer.earpieceOrSpeakersToggle();
-    if (result == 1) {
-      setState(() => _playingRouteState = _playingRouteState.toggle());
     }
     return result;
   }
@@ -261,5 +258,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   void _onComplete() {
     setState(() => _playerState = PlayerState.STOPPED);
+  }
+
+  // convert duration to [HH:]mm:ss format
+  String _durationToString(Duration? duration) {
+    if (_duration?.inHours == 0) {
+      return '${_duration?.inMinutes.remainder(60)}:${(_duration?.inSeconds.remainder(60))}';
+    }
+    return '${_duration?.inHours}:${_duration?.inMinutes.remainder(60)}:${(_duration?.inSeconds.remainder(60))}';
   }
 }

@@ -1,11 +1,7 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:provider/provider.dart';
+
 import 'player_widget.dart';
 
 void main() {
@@ -50,14 +46,11 @@ class _MusicAppState extends State<MusicApp> {
   @override
   void initState() {
     super.initState();
-    localFilePath = 'waterfalls.mp3';
-
     if (kIsWeb) {
-      // Calls to Platform.isIOS fails on web
-      return;
-    }
-    if (Platform.isIOS) {
-      cache.fixedPlayer?.notificationService.startHeadlessService();
+      // web needs the assets path
+      localFilePath = 'assets/waterfalls.mp3';
+    } else {
+      localFilePath = 'waterfalls.mp3';
     }
   }
 
@@ -80,6 +73,7 @@ class _MusicAppState extends State<MusicApp> {
                   const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Builder(builder: (context) {
@@ -117,7 +111,7 @@ class _MusicAppState extends State<MusicApp> {
                     ),
                   ),
                   const SizedBox(
-                    height: 30.0,
+                    height: 30,
                   ),
                   Expanded(
                     child: Container(
@@ -128,68 +122,13 @@ class _MusicAppState extends State<MusicApp> {
                           topRight: Radius.circular(30.0),
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          //Let's start by adding the controller
-                          //let's add the time indicator text
-                          SizedBox(
-                            width: 500.0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                PlayerWidget(url: localFilePath!),
-                              ],
-                            ),
-                          ),
-                          /*
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                iconSize: 45.0,
-                                color: Colors.blue,
-                                onPressed: () {},
-                                icon: const Icon(
-                                  Icons.skip_previous,
-                                ),
-                              ),
-                              IconButton(
-                                iconSize: 62.0,
-                                color: Colors.blue.shade800,
-                                onPressed: () {
-                                  if (!playing) {
-                                    cache.play("samples.mp3");
-                                    setState(() {
-                                      playBtn = Icons.pause;
-                                      playing = true;
-                                    });
-                                  } else {
-                                    player.pause();
-                                    setState(() {
-                                      playBtn = Icons.play_arrow;
-                                      playing = false;
-                                    });
-                                  }
-                                },
-                                icon: Icon(
-                                  playBtn,
-                                ),
-                              ),
-                              IconButton(
-                                iconSize: 45.0,
-                                color: Colors.blue,
-                                onPressed: () {},
-                                icon: const Icon(
-                                  Icons.skip_next,
-                                ),
-                              ),
-                            ],
-                          )*/
-                        ],
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [PlayerWidget(url: localFilePath!)],
+                        ),
                       ),
                     ),
                   ),
