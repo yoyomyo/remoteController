@@ -29,13 +29,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
-  PlayerState? _audioPlayerState;
+  //PlayerState? _audioPlayerState;
   // TODO: remove hard coded duration
   Duration? _duration = Duration(seconds: 2 * 60 + 26);
   Duration? _position;
 
   PlayerState _playerState = PlayerState.STOPPED;
-  PlayingRoute _playingRouteState = PlayingRoute.SPEAKERS;
   StreamSubscription? _durationSubscription;
   StreamSubscription? _positionSubscription;
   StreamSubscription? _playerCompleteSubscription;
@@ -43,8 +42,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription? _playerStateSubscription;
   StreamSubscription<PlayerControlCommand>? _playerControlCommandSubscription;
 
-  bool get _isPlaying => _playerState == PlayerState.PLAYING;
-  bool get _isPaused => _playerState == PlayerState.PAUSED;
   String get _durationText => durationToString(_duration);
   String get _positionText => durationToString(_position);
 
@@ -93,8 +90,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                           return;
                         }
                         final Position = v * duration.inMilliseconds;
-                        _audioPlayer
-                            .seek(Duration(milliseconds: Position.round()));
+                        if (kIsWeb) {
+                          _audioPlayer.play(url, position: Duration(milliseconds: Position.round()));
+                          setState(() => _playerState = PlayerState.PLAYING);
+
+                        } else{
+                          _audioPlayer
+                              .seek(Duration(milliseconds: Position.round()));
+                        }
                       },
                       value: (_position != null &&
                               _duration != null &&
@@ -119,29 +122,30 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              key: const Key('play_button'),
-              onPressed: _isPlaying ? null : _play,
+              key: const Key('fastforward_button'),
+              onPressed: _forward,
               iconSize: 48.0,
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(Icons.fast_forward),
               color: Colors.blue.shade500,
             ),
             IconButton(
-              key: const Key('pause_button'),
-              onPressed: _isPlaying ? _pause : null,
+              key: const Key('play_button'),
+              onPressed: _playerState == PlayerState.PLAYING ? _pause : _play,
               iconSize: 48.0,
-              icon: const Icon(Icons.pause),
+              icon: _playerState == PlayerState.PLAYING ? const Icon(Icons.pause) :const Icon(Icons.play_arrow),
               color: Colors.blue.shade500,
             ),
+
             IconButton(
               key: const Key('rewind_button'),
-              onPressed: _isPlaying || _isPaused ? _stop : null,
+              onPressed: _rewind,
               iconSize: 48.0,
               icon: const Icon(Icons.fast_rewind),
               color: Colors.blue.shade500,
             ),
           ],
         ),
-        Text('State: $_audioPlayerState'),
+        Text('State: $_playerState'),
       ],
     );
   }
@@ -149,6 +153,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   void _initAudioPlayer() {
     _audioPlayer = AudioPlayer(mode: mode);
     _audioCache = AudioCache(fixedPlayer: _audioPlayer);
+
 
     _durationSubscription = _audioPlayer.onDurationChanged.listen((duration) {
       setState(() => _duration = duration);
@@ -185,6 +190,11 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       });
     });
 
+    _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+      print('Current player state: $state');
+      setState(() => _playerState = state);
+    });
+
     _playerErrorSubscription = _audioPlayer.onPlayerError.listen((msg) {
       print('audioPlayer error : $msg');
       setState(() {
@@ -202,14 +212,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() {
-          _audioPlayerState = state;
+          _playerState = state;
         });
       }
     });
 
     _audioPlayer.onNotificationPlayerStateChanged.listen((state) {
       if (mounted) {
-        setState(() => _audioPlayerState = state);
+        setState(() => _playerState = state);
       }
     });
 
@@ -230,7 +240,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         setState(() => _playerState = PlayerState.PLAYING);
       }
     } else {
-      _audioCache.play(url);
+        _audioCache.play(url);
       _playerState = PlayerState.PLAYING;
     }
 
@@ -245,16 +255,47 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     return result;
   }
 
-  Future<int> _stop() async {
-    final result = await _audioPlayer.stop();
+
+  Future<int> _rewind() async {
+    Duration _tempPosition = Duration(seconds: _position!.inSeconds - 10);
+    var result = 0;
+
+      result = await _seek(_tempPosition);
+
+    return result;
+  }
+
+  Future<int> _seek(Duration _tempPosition) async {
+    var result = await _audioPlayer.seek(_tempPosition);
     if (result == 1) {
-      setState(() {
-        _playerState = PlayerState.STOPPED;
-        _position = const Duration();
-      });
+      setState(() => _position = _tempPosition);
     }
     return result;
   }
+
+
+  Future<int> _forward() async {
+    Duration _tempPosition = Duration(seconds: _position!.inSeconds + 10);
+    var result = 0;
+    if (kIsWeb) {
+      result = await _audioPlayer.play(url, position: _tempPosition);
+    }
+    else {
+      result = await _seek(_tempPosition);
+    }
+      return result;
+    }
+  //
+  // Future<int> _stop() async {
+  //   final result = await _audioPlayer.stop();
+  //   if (result == 1) {
+  //     setState(() {
+  //       _playerState = PlayerState.STOPPED;
+  //       _position = const Duration();
+  //     });
+  //   }
+  //   return result;
+  // }
 
   void _onComplete() {
     setState(() => _playerState = PlayerState.STOPPED);
