@@ -166,34 +166,37 @@ class DataSync {
 
   Future<void> _connect() async {
     final FirebaseDatabase db = FirebaseDatabase.instance;
-    // Create reference to this user's specific status node
-    // This is where we will store data about being online/offline
-    var deviceStatusRef = db.reference().child('/devices/');
+    if (_auth.currentUser != null) {
+      String uid = _auth.currentUser!.uid;
+      // Create reference to this device's specific status node
+      // This is where we will store data about being online/offline
+      var deviceStatusRef = db.reference().child('/devices/${uid}');
 
-    // We'll create two constants which we will write to the
-    // Realtime database when this device is offline or online
-    var isOfflineForDatabase = {
-      'state': 'offline',
-      'last_changed': ServerValue.timestamp,
-    };
-    var isOnlineForDatabase = {
-      'state': 'online',
-      'last_changed': ServerValue.timestamp,
-    };
+      // We'll create two constants which we will write to the
+      // Realtime database when this device is offline or online
+      var isOfflineForDatabase = {
+        'state': 'offline',
+        'last_changed': ServerValue.timestamp,
+      };
+      var isOnlineForDatabase = {
+        'state': 'online',
+        'last_changed': ServerValue.timestamp,
+      };
 
-    FirebaseDatabase.instance
-        .reference()
-        .child('.info/connected')
-        .onValue
-        .listen((data) {
-      if (data.snapshot.value == false) {
-        return;
-      }
+      FirebaseDatabase.instance
+          .reference()
+          .child('.info/connected')
+          .onValue
+          .listen((data) {
+        if (data.snapshot.value == false) {
+          return;
+        }
 
-      deviceStatusRef.onDisconnect().set(isOfflineForDatabase).then((_) {
-        deviceStatusRef.set(isOnlineForDatabase);
+        deviceStatusRef.onDisconnect().set(isOfflineForDatabase).then((_) {
+          deviceStatusRef.set(isOnlineForDatabase);
+        });
       });
-    });
+    }
   }
 
   Future<void> _signInAnonymously() async {
