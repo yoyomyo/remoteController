@@ -65,77 +65,71 @@ class _MusicAppState extends State<MusicApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Music Box'),
-        backgroundColor: Colors.blue.shade800,
-        actions: <Widget>[
-          PopupMenuButton<String>(
-            onSelected: _handleClick,
-            itemBuilder: (BuildContext context) {
-              return {'Sign in', 'Connect'}.map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
-                  child: Text(choice),
-                );
-              }).toList();
-            },
-          ),
-        ],
-      ),
-      body: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.shade800,
-                  Colors.purple.shade200,
-                ]),
-          ),
-          child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 18.0, horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                      child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10.0),
-                        child: Image.asset("assets/album_cover.jpg",
-                            fit: BoxFit.fitWidth)),
-                  )),
-                  const SizedBox(
-                    height: 8.0,
-                  ),
-                  const Center(
-                    child: Text(
-                      "Simple Stories",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.0,
-                        fontWeight: FontWeight.w600,
-                      ),
+        appBar: AppBar(
+          title: Text('Music Box'),
+          backgroundColor: Colors.blue.shade800,
+          actions: <Widget>[
+            PopupMenuButton<String>(
+              onSelected: _handleClick,
+              itemBuilder: (BuildContext context) {
+                return {'Sign in', 'Connect'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice),
+                  );
+                }).toList();
+              },
+            ),
+          ],
+        ),
+        body: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.blue.shade900,
+                    Colors.purple.shade200,
+                  ]),
+            ),
+            child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 36.0, horizontal: 24.0),
+                child: ListView(
+                  children: [
+                    SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: Center(
+                            child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10.0),
+                          child: Image.asset("assets/album_cover.jpg",
+                              fit: BoxFit.contain),
+                        ))),
+                    const SizedBox(
+                      height: 18.0,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 30,
-                  ),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(25.0),
-                          topRight: Radius.circular(25.0),
+                    const Center(
+                      child: Text(
+                        "Simple Stories",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28.0,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width,
+                    ),
+                    const SizedBox(
+                      height: 24,
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade50,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(25.0)),
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -149,10 +143,8 @@ class _MusicAppState extends State<MusicApp> {
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ))),
-    );
+                  ],
+                ))));
   }
 }
 
@@ -170,6 +162,7 @@ class DataSync {
       String uid = _auth.currentUser!.uid;
       // Create reference to this device's specific status node
       // This is where we will store data about being online/offline
+      // Change to FID later
       var deviceStatusRef = db.reference().child('/devices/${uid}');
 
       // We'll create two constants which we will write to the
