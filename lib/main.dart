@@ -51,11 +51,13 @@ class _MusicAppState extends State<MusicApp> {
     super.dispose();
   }
 
-  void _handleClick(String value) {
+  void _handleClick(String value) async {
     switch (value) {
-      case 'Logout':
+      case 'Sign in':
+        await dataSync._signInAnonymously();
         break;
-      case 'Settings':
+      case 'Connect':
+        await dataSync._connect();
         break;
     }
   }
@@ -68,7 +70,7 @@ class _MusicAppState extends State<MusicApp> {
         backgroundColor: Colors.blue.shade800,
         actions: <Widget>[
           PopupMenuButton<String>(
-            //onSelected: _handleClick(""),
+            onSelected: _handleClick,
             itemBuilder: (BuildContext context) {
               return {'Sign in', 'Connect'}.map((String choice) {
                 return PopupMenuItem<String>(
@@ -137,7 +139,13 @@ class _MusicAppState extends State<MusicApp> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [PlayerWidget(url: localFilePath!)],
+                          children: [
+                            PlayerWidget(
+                                url: localFilePath!,
+                                playerStateRef: FirebaseDatabase.instance
+                                    .reference()
+                                    .child('/player'))
+                          ],
                         ),
                       ),
                     ),

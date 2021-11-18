@@ -5,28 +5,32 @@ import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audioplayers/notifications.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class PlayerWidget extends StatefulWidget {
   final String url;
   final PlayerMode mode;
+  final DatabaseReference playerStateRef;
 
   const PlayerWidget({
     Key? key,
     required this.url,
     this.mode = PlayerMode.MEDIA_PLAYER,
+    required this.playerStateRef,
   }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
-    return _PlayerWidgetState(url, mode);
+    return _PlayerWidgetState(url, mode, playerStateRef);
   }
 }
 
 class _PlayerWidgetState extends State<PlayerWidget> {
   String url;
   PlayerMode mode;
+  DatabaseReference playerStateRef;
 
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
@@ -47,7 +51,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   String get _durationText => _durationToString(_duration);
   String get _positionText => _durationToString(_position);
 
-  _PlayerWidgetState(this.url, this.mode);
+  _PlayerWidgetState(this.url, this.mode, this.playerStateRef);
 
   @override
   void initState() {
@@ -243,7 +247,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       _audioCache.play(url);
       _playerState = PlayerState.PLAYING;
     }
-
+    updatePlayerDBState();
     return result;
   }
 
@@ -252,11 +256,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     if (result == 1) {
       setState(() => _playerState = PlayerState.PAUSED);
     }
+    updatePlayerDBState();
     return result;
   }
 
   Future<int> _rewind() async {
-    Duration _tempPosition = Duration(seconds: max(0, _position!.inSeconds - 10));
+    Duration _tempPosition =
+        Duration(seconds: max(0, _position!.inSeconds - 10));
     var result = await _seek(_tempPosition);
     return result;
   }
@@ -270,7 +276,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   Future<int> _forward() async {
-    Duration _tempPosition = Duration(seconds: min(_duration!.inSeconds, _position!.inSeconds + 10));
+    Duration _tempPosition =
+        Duration(seconds: min(_duration!.inSeconds, _position!.inSeconds + 10));
     var result = await _seek(_tempPosition);
     return result;
   }
@@ -291,6 +298,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     setState(() {
       _playerState = PlayerState.STOPPED;
     });
+  }
+
+  void updatePlayerDBState() async {
+    playerStateRef.set(_playerState.index);
   }
 
   // convert duration to [HH:]mm:ss format
