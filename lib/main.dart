@@ -44,25 +44,6 @@ class _MusicAppState extends State<MusicApp> {
     } else {
       localFilePath = 'waterfalls.mp3';
     }
-
-    // // Demonstrates configuring to the database using a file
-    // _counterRef = FirebaseDatabase.instance.reference().child('player_state');
-    // // Demonstrates configuring the database directly
-    // // _counterRef.get().then((DataSnapshot? snapshot) {
-    // //   _counter = snapshot!.value;
-    // //   print('Connected to directly configured database and read ${_counter}');
-    // // });
-    // _counterSubscription = _counterRef.onValue.listen((Event event) {
-    //   setState(() {
-    //     _error = null;
-    //     _counter = event.snapshot.value ?? 0;
-    //   });
-    // }, onError: (Object o) {
-    //   final DatabaseError error = o as DatabaseError;
-    //   setState(() {
-    //     _error = error;
-    //   });
-    // });
   }
 
   @override
@@ -122,19 +103,19 @@ class _MusicAppState extends State<MusicApp> {
                       child: SizedBox(
                     width: MediaQuery.of(context).size.width,
                     child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20.0),
+                        borderRadius: BorderRadius.circular(10.0),
                         child: Image.asset("assets/album_cover.jpg",
                             fit: BoxFit.fitWidth)),
                   )),
                   const SizedBox(
-                    height: 18.0,
+                    height: 8.0,
                   ),
                   const Center(
                     child: Text(
                       "Simple Stories",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 32.0,
+                        fontSize: 12.0,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -147,8 +128,8 @@ class _MusicAppState extends State<MusicApp> {
                       decoration: BoxDecoration(
                         color: Colors.purple.shade50,
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(30.0),
-                          topRight: Radius.circular(30.0),
+                          topLeft: Radius.circular(25.0),
+                          topRight: Radius.circular(25.0),
                         ),
                       ),
                       child: SizedBox(
