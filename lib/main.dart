@@ -1,31 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 import 'player_widget.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: MusicApp(),
-    );
-  }
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  FirebaseApp app = await Firebase.initializeApp();
+  runApp(
+    MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: MusicApp(app: app),
+        theme: ThemeData(primaryColor: Colors.blue.shade900)),
+  );
 }
 
 class MusicApp extends StatefulWidget {
-  const MusicApp({Key? key}) : super(key: key);
+  MusicApp({Key? key, required this.app}) : super(key: key);
+
+  final FirebaseApp app;
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   @override
   _MusicAppState createState() => _MusicAppState();
@@ -33,6 +33,7 @@ class MusicApp extends StatefulWidget {
 
 class _MusicAppState extends State<MusicApp> {
   String? localFilePath;
+  late DataSync dataSync = DataSync();
 
   @override
   void initState() {
@@ -46,8 +47,41 @@ class _MusicAppState extends State<MusicApp> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  void _handleClick(String value) async {
+    switch (value) {
+      case 'Sign in':
+        await dataSync._signInAnonymously();
+        break;
+      case 'Connect':
+        await dataSync._connect();
+        break;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+        appBar: AppBar(
+          title: Text('Music Box'),
+          backgroundColor: Colors.blue.shade800,
+          actions: <Widget>[
+            PopupMenuButton<String>(
+              onSelected: _handleClick,
+              itemBuilder: (BuildContext context) {
+                return {'Sign in', 'Connect'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice),
+                  );
+                }).toList();
+              },
+            ),
+          ],
+        ),
         body: Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -64,18 +98,6 @@ class _MusicAppState extends State<MusicApp> {
                     vertical: 36.0, horizontal: 24.0),
                 child: ListView(
                   children: [
-                    const Center(
-                        child: Text(
-                          "Music Box",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    )),
-                    const SizedBox(
-                      height: 24.0,
-                    ),
                     SizedBox(
                         width: MediaQuery.of(context).size.width,
                         child: Center(
@@ -111,11 +133,71 @@ class _MusicAppState extends State<MusicApp> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [PlayerWidget(url: localFilePath!)],
+                          children: [
+                            PlayerWidget(
+                                url: localFilePath!,
+                                playerStateRef: FirebaseDatabase.instance
+                                    .reference()
+                                    .child('/player'))
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ))));
+  }
+}
+
+class DataSync {
+  late FirebaseAuth _auth;
+  DatabaseError? _error;
+
+  DataSync() {
+    _auth = FirebaseAuth.instance;
+  }
+
+  Future<void> _connect() async {
+    final FirebaseDatabase db = FirebaseDatabase.instance;
+    if (_auth.currentUser != null) {
+      String uid = _auth.currentUser!.uid;
+      // Create reference to this device's specific status node
+      // This is where we will store data about being online/offline
+      // Change to FID later
+      var deviceStatusRef = db.reference().child('/devices/${uid}');
+
+      // We'll create two constants which we will write to the
+      // Realtime database when this device is offline or online
+      var isOfflineForDatabase = {
+        'state': 'offline',
+        'last_changed': ServerValue.timestamp,
+      };
+      var isOnlineForDatabase = {
+        'state': 'online',
+        'last_changed': ServerValue.timestamp,
+      };
+
+      FirebaseDatabase.instance
+          .reference()
+          .child('.info/connected')
+          .onValue
+          .listen((data) {
+        if (data.snapshot.value == false) {
+          return;
+        }
+
+        deviceStatusRef.onDisconnect().set(isOfflineForDatabase).then((_) {
+          deviceStatusRef.set(isOnlineForDatabase);
+        });
+      });
+    }
+  }
+
+  Future<void> _signInAnonymously() async {
+    try {
+      final User user = (await _auth.signInAnonymously()).user!;
+      print('sign in Anonymously. ${user}');
+    } catch (e) {
+      print('Failed to sign in Anonymously. ${e}');
+    }
   }
 }
