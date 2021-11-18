@@ -44,9 +44,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription? _playerStateSubscription;
   StreamSubscription<PlayerControlCommand>? _playerControlCommandSubscription;
 
-  String get _durationText => durationToString(_duration);
-
-  String get _positionText => durationToString(_position);
+  String get _durationText => _durationToString(_duration);
+  String get _positionText => _durationToString(_position);
 
   _PlayerWidgetState(this.url, this.mode);
 
@@ -295,7 +294,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   // convert duration to [HH:]mm:ss format
-  String durationToString(Duration? duration) {
+  String _durationToString(Duration? duration) {
     String twoDigits(n) => n.toString().padLeft(2, "0");
     String twoDigitMinutes = twoDigits(duration?.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration?.inSeconds.remainder(60));

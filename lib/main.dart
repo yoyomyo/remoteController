@@ -1,6 +1,8 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 import 'player_widget.dart';
 
@@ -10,6 +12,8 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -28,20 +32,7 @@ class MusicApp extends StatefulWidget {
 }
 
 class _MusicAppState extends State<MusicApp> {
-  bool playing = false;
-  IconData playBtn = Icons.play_arrow;
-
-  AudioPlayer player = AudioPlayer();
-  AudioCache cache = AudioCache();
   String? localFilePath;
-  String? localAudioCacheURI;
-
-  Duration position = Duration();
-
-  void seekToSec(int sec) {
-    Duration newPos = Duration(seconds: sec);
-    player.seek(newPos);
-  }
 
   @override
   void initState() {
