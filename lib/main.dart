@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:js';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,15 +13,13 @@ import 'player_widget.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FirebaseApp app = await Firebase.initializeApp();
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: MusicApp(app: app),
-  ));
+  runApp(
+    MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: MusicApp(app: app),
+        theme: ThemeData(primaryColor: Colors.blue.shade900)),
+  );
 }
-
-// void main() {
-//   runApp(const MyApp());
-// }
 
 class MusicApp extends StatefulWidget {
   MusicApp({Key? key, required this.app}) : super(key: key);
@@ -36,13 +33,7 @@ class MusicApp extends StatefulWidget {
 
 class _MusicAppState extends State<MusicApp> {
   String? localFilePath;
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  int _counter = 0;
-  late DatabaseReference _counterRef;
-  late DatabaseReference _connectedRef;
-  late StreamSubscription<Event> _counterSubscription;
-  DatabaseError? _error;
+  late DataSync dataSync = DataSync();
 
   @override
   void initState() {
@@ -54,87 +45,60 @@ class _MusicAppState extends State<MusicApp> {
       localFilePath = 'waterfalls.mp3';
     }
 
-    // Demonstrates configuring to the database using a file
-    _counterRef = FirebaseDatabase.instance.reference().child('player_state');
-
-    // Demonstrates configuring the database directly
-    // _counterRef.get().then((DataSnapshot? snapshot) {
-    //   _counter = snapshot!.value;
-    //   print('Connected to directly configured database and read ${_counter}');
+    // // Demonstrates configuring to the database using a file
+    // _counterRef = FirebaseDatabase.instance.reference().child('player_state');
+    // // Demonstrates configuring the database directly
+    // // _counterRef.get().then((DataSnapshot? snapshot) {
+    // //   _counter = snapshot!.value;
+    // //   print('Connected to directly configured database and read ${_counter}');
+    // // });
+    // _counterSubscription = _counterRef.onValue.listen((Event event) {
+    //   setState(() {
+    //     _error = null;
+    //     _counter = event.snapshot.value ?? 0;
+    //   });
+    // }, onError: (Object o) {
+    //   final DatabaseError error = o as DatabaseError;
+    //   setState(() {
+    //     _error = error;
+    //   });
     // });
-    _counterSubscription = _counterRef.onValue.listen((Event event) {
-      setState(() {
-        _error = null;
-        _counter = event.snapshot.value ?? 0;
-      });
-    }, onError: (Object o) {
-      final DatabaseError error = o as DatabaseError;
-      setState(() {
-        _error = error;
-      });
-    });
   }
 
   @override
   void dispose() {
     super.dispose();
-    _counterSubscription.cancel();
   }
 
-  Future<void> _increment() async {
-    await _counterRef.set(ServerValue.increment(1));
-  }
-
-  Future<void> connect() async {
-    final FirebaseDatabase db = FirebaseDatabase.instance;
-    // Fetch current user's ID from authentication service
-    User? user = _auth.currentUser;
-    if (user != null) {
-      String uid = user.uid;
-      // Create reference to this user's specific status node
-      // This is where we will store data about being online/offline
-      var userStatusRef = db.reference().child('/status/' + uid);
-
-      // We'll create two constants which we will write to the
-      // Realtime database when this device is offline or online
-      var isOfflineForDatabase = {
-        'state': 'offline',
-        'last_changed': ServerValue.timestamp,
-      };
-      var isOnlineForDatabase = {
-        'state': 'online',
-        'last_changed': ServerValue.timestamp,
-      };
-
-      // This is the correct implementation
-      FirebaseDatabase.instance
-          .reference()
-          .child('.info/connected')
-          .onValue
-          .listen((data) {
-        if (data.snapshot.value == false) {
-          return;
-        }
-
-        userStatusRef.onDisconnect().set(isOfflineForDatabase).then((_) {
-          userStatusRef.set(isOnlineForDatabase);
-        });
-      });
-    }
-  }
-
-  Future<void> _signInAnonymously() async {
-    try {
-      final User user = (await _auth.signInAnonymously()).user!;
-      print('sign in Anonymously. ${user}');
-    } catch (e) {
-      print('Failed to sign in Anonymously. ${e}');
+  void _handleClick(String value) {
+    switch (value) {
+      case 'Logout':
+        break;
+      case 'Settings':
+        break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Music Box'),
+        backgroundColor: Colors.blue.shade800,
+        actions: <Widget>[
+          PopupMenuButton<String>(
+            //onSelected: _handleClick(""),
+            itemBuilder: (BuildContext context) {
+              return {'Sign in', 'Connect'}.map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
+            },
+          ),
+        ],
+      ),
       body: Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -142,41 +106,18 @@ class _MusicAppState extends State<MusicApp> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.blue.shade900,
+                  Colors.blue.shade800,
                   Colors.purple.shade200,
                 ]),
           ),
           child: Padding(
               padding:
-                  const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+                  const EdgeInsets.symmetric(vertical: 18.0, horizontal: 24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ElevatedButton(
-                      onPressed: () async {
-                        await _signInAnonymously();
-                      },
-                      child: const Text('sign in')),
-                  ElevatedButton(
-                      onPressed: () async {
-                        await connect();
-                      },
-                      child: const Text('connect')),
-                  Builder(builder: (context) {
-                    return const Text(
-                      "Music Box",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 38.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    );
-                  }),
-                  const SizedBox(
-                    height: 24.0,
-                  ),
                   Center(
                       child: SizedBox(
                     width: MediaQuery.of(context).size.width,
@@ -223,5 +164,55 @@ class _MusicAppState extends State<MusicApp> {
                 ],
               ))),
     );
+  }
+}
+
+class DataSync {
+  late FirebaseAuth _auth;
+  DatabaseError? _error;
+
+  DataSync() {
+    _auth = FirebaseAuth.instance;
+  }
+
+  Future<void> _connect() async {
+    final FirebaseDatabase db = FirebaseDatabase.instance;
+    // Create reference to this user's specific status node
+    // This is where we will store data about being online/offline
+    var deviceStatusRef = db.reference().child('/devices/');
+
+    // We'll create two constants which we will write to the
+    // Realtime database when this device is offline or online
+    var isOfflineForDatabase = {
+      'state': 'offline',
+      'last_changed': ServerValue.timestamp,
+    };
+    var isOnlineForDatabase = {
+      'state': 'online',
+      'last_changed': ServerValue.timestamp,
+    };
+
+    FirebaseDatabase.instance
+        .reference()
+        .child('.info/connected')
+        .onValue
+        .listen((data) {
+      if (data.snapshot.value == false) {
+        return;
+      }
+
+      deviceStatusRef.onDisconnect().set(isOfflineForDatabase).then((_) {
+        deviceStatusRef.set(isOnlineForDatabase);
+      });
+    });
+  }
+
+  Future<void> _signInAnonymously() async {
+    try {
+      final User user = (await _auth.signInAnonymously()).user!;
+      print('sign in Anonymously. ${user}');
+    } catch (e) {
+      print('Failed to sign in Anonymously. ${e}');
+    }
   }
 }
