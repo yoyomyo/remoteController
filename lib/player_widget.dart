@@ -29,6 +29,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
+
   //PlayerState? _audioPlayerState;
   // TODO: remove hard coded duration
   Duration? _duration = Duration(seconds: 2 * 60 + 26);
@@ -43,6 +44,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription<PlayerControlCommand>? _playerControlCommandSubscription;
 
   String get _durationText => durationToString(_duration);
+
   String get _positionText => durationToString(_position);
 
   _PlayerWidgetState(this.url, this.mode);
@@ -90,14 +92,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                           return;
                         }
                         final Position = v * duration.inMilliseconds;
-                        if (kIsWeb) {
-                          _audioPlayer.play(url, position: Duration(milliseconds: Position.round()));
-                          setState(() => _playerState = PlayerState.PLAYING);
-
-                        } else{
-                          _audioPlayer
-                              .seek(Duration(milliseconds: Position.round()));
-                        }
+                        _audioPlayer
+                            .seek(Duration(milliseconds: Position.round()));
                       },
                       value: (_position != null &&
                               _duration != null &&
@@ -132,10 +128,11 @@ class _PlayerWidgetState extends State<PlayerWidget> {
               key: const Key('play_button'),
               onPressed: _playerState == PlayerState.PLAYING ? _pause : _play,
               iconSize: 48.0,
-              icon: _playerState == PlayerState.PLAYING ? const Icon(Icons.pause) :const Icon(Icons.play_arrow),
+              icon: _playerState == PlayerState.PLAYING
+                  ? const Icon(Icons.pause)
+                  : const Icon(Icons.play_arrow),
               color: Colors.blue.shade500,
             ),
-
             IconButton(
               key: const Key('rewind_button'),
               onPressed: _rewind,
@@ -154,7 +151,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     _audioPlayer = AudioPlayer(mode: mode);
     _audioCache = AudioCache(fixedPlayer: _audioPlayer);
 
-
     _durationSubscription = _audioPlayer.onDurationChanged.listen((duration) {
       setState(() => _duration = duration);
 
@@ -168,8 +164,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           artist: 'Artist or blank',
           albumTitle: 'Name or blank',
           imageUrl: 'Image URL or blank',
-          forwardSkipInterval: const Duration(seconds: 30), // default is 30s
-          backwardSkipInterval: const Duration(seconds: 30), // default is 30s
+          forwardSkipInterval: const Duration(seconds: 30),
+          // default is 30s
+          backwardSkipInterval: const Duration(seconds: 30),
+          // default is 30s
           duration: duration,
           enableNextTrackButton: true,
           enablePreviousTrackButton: true,
@@ -180,17 +178,21 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     _positionSubscription =
         _audioPlayer.onAudioPositionChanged.listen((p) => setState(() {
               _position = p;
+              if (_position == _duration) {
+                _onComplete();
+              }
             }));
 
     _playerCompleteSubscription =
         _audioPlayer.onPlayerCompletion.listen((event) {
       _onComplete();
       setState(() {
-        _position = _duration;
+        _position = const Duration();
       });
     });
 
-    _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+    _playerStateSubscription =
+        _audioPlayer.onPlayerStateChanged.listen((state) {
       print('Current player state: $state');
       setState(() => _playerState = state);
     });
@@ -222,8 +224,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         setState(() => _playerState = state);
       }
     });
-
-    _playingRouteState = PlayingRoute.SPEAKERS;
   }
 
   Future<int> _play() async {
@@ -240,7 +240,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         setState(() => _playerState = PlayerState.PLAYING);
       }
     } else {
-        _audioCache.play(url);
+      _audioCache.play(url);
       _playerState = PlayerState.PLAYING;
     }
 
@@ -255,13 +255,9 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     return result;
   }
 
-
   Future<int> _rewind() async {
     Duration _tempPosition = Duration(seconds: _position!.inSeconds - 10);
-    var result = 0;
-
-      result = await _seek(_tempPosition);
-
+    var result = await _seek(_tempPosition);
     return result;
   }
 
@@ -273,18 +269,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     return result;
   }
 
-
   Future<int> _forward() async {
     Duration _tempPosition = Duration(seconds: _position!.inSeconds + 10);
-    var result = 0;
-    if (kIsWeb) {
-      result = await _audioPlayer.play(url, position: _tempPosition);
-    }
-    else {
-      result = await _seek(_tempPosition);
-    }
-      return result;
-    }
+    var result = await _seek(_tempPosition);
+    return result;
+  }
+
   //
   // Future<int> _stop() async {
   //   final result = await _audioPlayer.stop();
@@ -298,7 +288,9 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   // }
 
   void _onComplete() {
-    setState(() => _playerState = PlayerState.STOPPED);
+    setState(() {
+      _playerState = PlayerState.STOPPED;
+    });
   }
 
   // convert duration to [HH:]mm:ss format
