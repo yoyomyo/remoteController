@@ -72,12 +72,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
+        Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
                 children: [
                   Text(
                     _position != null ? '$_positionText' : '00:00',
@@ -111,38 +111,38 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                   ),
                 ],
               ),
-            ),
-          ],
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    key: const Key('fastforward_button'),
+                    onPressed: _forward,
+                    iconSize: 48.0,
+                    icon: const Icon(Icons.fast_forward),
+                    color: Colors.blue.shade500,
+                  ),
+                  IconButton(
+                    key: const Key('play_button'),
+                    onPressed: _playerState == PlayerState.PLAYING ? _pause : _play,
+                    iconSize: 48.0,
+                    icon: _playerState == PlayerState.PLAYING
+                        ? const Icon(Icons.pause)
+                        : const Icon(Icons.play_arrow),
+                    color: Colors.blue.shade500,
+                  ),
+                  IconButton(
+                    key: const Key('rewind_button'),
+                    onPressed: _rewind,
+                    iconSize: 48.0,
+                    icon: const Icon(Icons.fast_rewind),
+                    color: Colors.blue.shade500,
+                  ),
+                ],
+              ),
+              Text('State: $_playerState'),
+            ],
+          ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              key: const Key('fastforward_button'),
-              onPressed: _forward,
-              iconSize: 48.0,
-              icon: const Icon(Icons.fast_forward),
-              color: Colors.blue.shade500,
-            ),
-            IconButton(
-              key: const Key('play_button'),
-              onPressed: _playerState == PlayerState.PLAYING ? _pause : _play,
-              iconSize: 48.0,
-              icon: _playerState == PlayerState.PLAYING
-                  ? const Icon(Icons.pause)
-                  : const Icon(Icons.play_arrow),
-              color: Colors.blue.shade500,
-            ),
-            IconButton(
-              key: const Key('rewind_button'),
-              onPressed: _rewind,
-              iconSize: 48.0,
-              icon: const Icon(Icons.fast_rewind),
-              color: Colors.blue.shade500,
-            ),
-          ],
-        ),
-        Text('State: $_playerState'),
       ],
     );
   }
