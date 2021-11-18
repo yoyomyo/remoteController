@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:js';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -8,26 +11,24 @@ import 'package:firebase_database/firebase_database.dart';
 
 import 'player_widget.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  FirebaseApp app = await Firebase.initializeApp();
+  runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: MusicApp(app: app),
+  ));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: MusicApp(),
-    );
-  }
-}
+// void main() {
+//   runApp(const MyApp());
+// }
 
 class MusicApp extends StatefulWidget {
-  const MusicApp({Key? key}) : super(key: key);
+  MusicApp({Key? key, required this.app}) : super(key: key);
+
+  final FirebaseApp app;
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   @override
   _MusicAppState createState() => _MusicAppState();
@@ -35,6 +36,13 @@ class MusicApp extends StatefulWidget {
 
 class _MusicAppState extends State<MusicApp> {
   String? localFilePath;
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  int _counter = 0;
+  late DatabaseReference _counterRef;
+  late DatabaseReference _connectedRef;
+  late StreamSubscription<Event> _counterSubscription;
+  DatabaseError? _error;
 
   @override
   void initState() {
@@ -44,6 +52,83 @@ class _MusicAppState extends State<MusicApp> {
       localFilePath = 'assets/waterfalls.mp3';
     } else {
       localFilePath = 'waterfalls.mp3';
+    }
+
+    // Demonstrates configuring to the database using a file
+    _counterRef = FirebaseDatabase.instance.reference().child('player_state');
+
+    // Demonstrates configuring the database directly
+    // _counterRef.get().then((DataSnapshot? snapshot) {
+    //   _counter = snapshot!.value;
+    //   print('Connected to directly configured database and read ${_counter}');
+    // });
+    _counterSubscription = _counterRef.onValue.listen((Event event) {
+      setState(() {
+        _error = null;
+        _counter = event.snapshot.value ?? 0;
+      });
+    }, onError: (Object o) {
+      final DatabaseError error = o as DatabaseError;
+      setState(() {
+        _error = error;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _counterSubscription.cancel();
+  }
+
+  Future<void> _increment() async {
+    await _counterRef.set(ServerValue.increment(1));
+  }
+
+  Future<void> connect() async {
+    final FirebaseDatabase db = FirebaseDatabase.instance;
+    // Fetch current user's ID from authentication service
+    User? user = _auth.currentUser;
+    if (user != null) {
+      String uid = user.uid;
+      // Create reference to this user's specific status node
+      // This is where we will store data about being online/offline
+      var userStatusRef = db.reference().child('/status/' + uid);
+
+      // We'll create two constants which we will write to the
+      // Realtime database when this device is offline or online
+      var isOfflineForDatabase = {
+        'state': 'offline',
+        'last_changed': ServerValue.timestamp,
+      };
+      var isOnlineForDatabase = {
+        'state': 'online',
+        'last_changed': ServerValue.timestamp,
+      };
+
+      // This is the correct implementation
+      FirebaseDatabase.instance
+          .reference()
+          .child('.info/connected')
+          .onValue
+          .listen((data) {
+        if (data.snapshot.value == false) {
+          return;
+        }
+
+        userStatusRef.onDisconnect().set(isOfflineForDatabase).then((_) {
+          userStatusRef.set(isOnlineForDatabase);
+        });
+      });
+    }
+  }
+
+  Future<void> _signInAnonymously() async {
+    try {
+      final User user = (await _auth.signInAnonymously()).user!;
+      print('sign in Anonymously. ${user}');
+    } catch (e) {
+      print('Failed to sign in Anonymously. ${e}');
     }
   }
 
@@ -69,6 +154,16 @@ class _MusicAppState extends State<MusicApp> {
                 mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  ElevatedButton(
+                      onPressed: () async {
+                        await _signInAnonymously();
+                      },
+                      child: const Text('sign in')),
+                  ElevatedButton(
+                      onPressed: () async {
+                        await connect();
+                      },
+                      child: const Text('connect')),
                   Builder(builder: (context) {
                     return const Text(
                       "Music Box",
