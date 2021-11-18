@@ -1,6 +1,7 @@
 // Adapted from https://github.com/bluefireteam/audioplayers/blob/master/packages/audioplayers/example/lib/player_widget.dart
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audioplayers/notifications.dart';
@@ -256,7 +257,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   Future<int> _rewind() async {
-    Duration _tempPosition = Duration(seconds: _position!.inSeconds - 10);
+    Duration _tempPosition = Duration(seconds: max(0, _position!.inSeconds - 10));
     var result = await _seek(_tempPosition);
     return result;
   }
@@ -270,7 +271,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   Future<int> _forward() async {
-    Duration _tempPosition = Duration(seconds: _position!.inSeconds + 10);
+    Duration _tempPosition = Duration(seconds: min(_duration!.inSeconds, _position!.inSeconds + 10));
     var result = await _seek(_tempPosition);
     return result;
   }
