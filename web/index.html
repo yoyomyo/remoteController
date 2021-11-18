@@ -97,5 +97,23 @@
       loadMainDartJs();
     }
   </script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-analytics.js"></script>
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB3WmS7FZyk9L0WxvhUQ5dDV9ppc9qDU3A",
+      authDomain: "flutter-fire-remote-controller.firebaseapp.com",
+      projectId: "flutter-fire-remote-controller",
+      storageBucket: "flutter-fire-remote-controller.appspot.com",
+      messagingSenderId: "634514145209",
+      appId: "1:634514145209:web:38e25ca6aa11b033ad8068",
+      measurementId: "G-7RXCK6W2RV"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
 </body>
 </html>

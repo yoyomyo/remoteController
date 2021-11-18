@@ -1,6 +1,8 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 import 'player_widget.dart';
 
@@ -10,6 +12,8 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -28,20 +32,7 @@ class MusicApp extends StatefulWidget {
 }
 
 class _MusicAppState extends State<MusicApp> {
-  bool playing = false;
-  IconData playBtn = Icons.play_arrow;
-
-  AudioPlayer player = AudioPlayer();
-  AudioCache cache = AudioCache();
   String? localFilePath;
-  String? localAudioCacheURI;
-
-  Duration position = Duration();
-
-  void seekToSec(int sec) {
-    Duration newPos = Duration(seconds: sec);
-    player.seek(newPos);
-  }
 
   @override
   void initState() {
@@ -75,12 +66,12 @@ class _MusicAppState extends State<MusicApp> {
                   children: [
                     const Center(
                         child: Text(
-                      "Music Box",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 38.0,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          "Music Box",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
+                          ),
                     )),
                     const SizedBox(
                       height: 24.0,
@@ -89,7 +80,7 @@ class _MusicAppState extends State<MusicApp> {
                         width: MediaQuery.of(context).size.width,
                         child: Center(
                             child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20.0),
+                          borderRadius: BorderRadius.circular(10.0),
                           child: Image.asset("assets/album_cover.jpg",
                               fit: BoxFit.contain),
                         ))),
@@ -115,7 +106,7 @@ class _MusicAppState extends State<MusicApp> {
                         decoration: BoxDecoration(
                           color: Colors.purple.shade50,
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(30.0)),
+                              const BorderRadius.all(Radius.circular(25.0)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
