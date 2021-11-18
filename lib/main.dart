@@ -57,73 +57,66 @@ class _MusicAppState extends State<MusicApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.shade900,
-                  Colors.purple.shade200,
-                ]),
-          ),
-          child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Builder(builder: (context) {
-                    return const Text(
+        body: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.blue.shade900,
+                    Colors.purple.shade200,
+                  ]),
+            ),
+            child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 36.0, horizontal: 24.0),
+                child: ListView(
+                  children: [
+                    const Center(
+                        child: Text(
                       "Music Box",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 38.0,
                         fontWeight: FontWeight.bold,
                       ),
-                    );
-                  }),
-                  const SizedBox(
-                    height: 24.0,
-                  ),
-                  Center(
-                      child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20.0),
-                        child: Image.asset("assets/album_cover.jpg",
-                            fit: BoxFit.fitWidth)),
-                  )),
-                  const SizedBox(
-                    height: 18.0,
-                  ),
-                  const Center(
-                    child: Text(
-                      "Simple Stories",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32.0,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    )),
+                    const SizedBox(
+                      height: 24.0,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 30,
-                  ),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(30.0),
-                          topRight: Radius.circular(30.0),
+                    SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: Center(
+                            child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20.0),
+                          child: Image.asset("assets/album_cover.jpg",
+                              fit: BoxFit.contain),
+                        ))),
+                    const SizedBox(
+                      height: 18.0,
+                    ),
+                    const Center(
+                      child: Text(
+                        "Simple Stories",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28.0,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width,
+                    ),
+                    const SizedBox(
+                      height: 24,
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade50,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(30.0)),
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -131,9 +124,7 @@ class _MusicAppState extends State<MusicApp> {
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ))),
-    );
+                  ],
+                ))));
   }
 }

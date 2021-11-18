@@ -30,6 +30,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
   PlayerState? _audioPlayerState;
+
   // TODO: remove hard coded duration
   Duration? _duration = Duration(seconds: 2 * 60 + 26);
   Duration? _position;
@@ -44,8 +45,11 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription<PlayerControlCommand>? _playerControlCommandSubscription;
 
   bool get _isPlaying => _playerState == PlayerState.PLAYING;
+
   bool get _isPaused => _playerState == PlayerState.PAUSED;
+
   String get _durationText => durationToString(_duration);
+
   String get _positionText => durationToString(_position);
 
   _PlayerWidgetState(this.url, this.mode);
@@ -73,12 +77,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
+        Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
                 children: [
                   Text(
                     _position != null ? '$_positionText' : '00:00',
@@ -112,36 +116,36 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                   ),
                 ],
               ),
-            ),
-          ],
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    key: const Key('play_button'),
+                    onPressed: _isPlaying ? null : _play,
+                    iconSize: 48.0,
+                    icon: const Icon(Icons.play_arrow),
+                    color: Colors.blue.shade500,
+                  ),
+                  IconButton(
+                    key: const Key('pause_button'),
+                    onPressed: _isPlaying ? _pause : null,
+                    iconSize: 48.0,
+                    icon: const Icon(Icons.pause),
+                    color: Colors.blue.shade500,
+                  ),
+                  IconButton(
+                    key: const Key('rewind_button'),
+                    onPressed: _isPlaying || _isPaused ? _stop : null,
+                    iconSize: 48.0,
+                    icon: const Icon(Icons.fast_rewind),
+                    color: Colors.blue.shade500,
+                  ),
+                ],
+              ),
+              Text('State: $_audioPlayerState'),
+            ],
+          ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              key: const Key('play_button'),
-              onPressed: _isPlaying ? null : _play,
-              iconSize: 48.0,
-              icon: const Icon(Icons.play_arrow),
-              color: Colors.blue.shade500,
-            ),
-            IconButton(
-              key: const Key('pause_button'),
-              onPressed: _isPlaying ? _pause : null,
-              iconSize: 48.0,
-              icon: const Icon(Icons.pause),
-              color: Colors.blue.shade500,
-            ),
-            IconButton(
-              key: const Key('rewind_button'),
-              onPressed: _isPlaying || _isPaused ? _stop : null,
-              iconSize: 48.0,
-              icon: const Icon(Icons.fast_rewind),
-              color: Colors.blue.shade500,
-            ),
-          ],
-        ),
-        Text('State: $_audioPlayerState'),
       ],
     );
   }
@@ -163,8 +167,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           artist: 'Artist or blank',
           albumTitle: 'Name or blank',
           imageUrl: 'Image URL or blank',
-          forwardSkipInterval: const Duration(seconds: 30), // default is 30s
-          backwardSkipInterval: const Duration(seconds: 30), // default is 30s
+          forwardSkipInterval: const Duration(seconds: 30),
+          // default is 30s
+          backwardSkipInterval: const Duration(seconds: 30),
+          // default is 30s
           duration: duration,
           enableNextTrackButton: true,
           enablePreviousTrackButton: true,
