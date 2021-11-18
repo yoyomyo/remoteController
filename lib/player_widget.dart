@@ -1,6 +1,7 @@
 // Adapted from https://github.com/bluefireteam/audioplayers/blob/master/packages/audioplayers/example/lib/player_widget.dart
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audioplayers/notifications.dart';
@@ -29,13 +30,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
-  PlayerState? _audioPlayerState;
+
+  //PlayerState? _audioPlayerState;
   // TODO: remove hard coded duration
   Duration? _duration = Duration(seconds: 2 * 60 + 26);
   Duration? _position;
 
   PlayerState _playerState = PlayerState.STOPPED;
-  PlayingRoute _playingRouteState = PlayingRoute.SPEAKERS;
   StreamSubscription? _durationSubscription;
   StreamSubscription? _positionSubscription;
   StreamSubscription? _playerCompleteSubscription;
@@ -43,8 +44,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription? _playerStateSubscription;
   StreamSubscription<PlayerControlCommand>? _playerControlCommandSubscription;
 
-  bool get _isPlaying => _playerState == PlayerState.PLAYING;
-  bool get _isPaused => _playerState == PlayerState.PAUSED;
   String get _durationText => _durationToString(_duration);
   String get _positionText => _durationToString(_position);
 
@@ -119,29 +118,31 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              key: const Key('play_button'),
-              onPressed: _isPlaying ? null : _play,
+              key: const Key('fastforward_button'),
+              onPressed: _forward,
               iconSize: 48.0,
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(Icons.fast_forward),
               color: Colors.blue.shade500,
             ),
             IconButton(
-              key: const Key('pause_button'),
-              onPressed: _isPlaying ? _pause : null,
+              key: const Key('play_button'),
+              onPressed: _playerState == PlayerState.PLAYING ? _pause : _play,
               iconSize: 48.0,
-              icon: const Icon(Icons.pause),
+              icon: _playerState == PlayerState.PLAYING
+                  ? const Icon(Icons.pause)
+                  : const Icon(Icons.play_arrow),
               color: Colors.blue.shade500,
             ),
             IconButton(
               key: const Key('rewind_button'),
-              onPressed: _isPlaying || _isPaused ? _stop : null,
+              onPressed: _rewind,
               iconSize: 48.0,
               icon: const Icon(Icons.fast_rewind),
               color: Colors.blue.shade500,
             ),
           ],
         ),
-        Text('State: $_audioPlayerState'),
+        Text('State: $_playerState'),
       ],
     );
   }
@@ -163,8 +164,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           artist: 'Artist or blank',
           albumTitle: 'Name or blank',
           imageUrl: 'Image URL or blank',
-          forwardSkipInterval: const Duration(seconds: 30), // default is 30s
-          backwardSkipInterval: const Duration(seconds: 30), // default is 30s
+          forwardSkipInterval: const Duration(seconds: 30),
+          // default is 30s
+          backwardSkipInterval: const Duration(seconds: 30),
+          // default is 30s
           duration: duration,
           enableNextTrackButton: true,
           enablePreviousTrackButton: true,
@@ -175,14 +178,23 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     _positionSubscription =
         _audioPlayer.onAudioPositionChanged.listen((p) => setState(() {
               _position = p;
+              if (_position == _duration) {
+                _onComplete();
+              }
             }));
 
     _playerCompleteSubscription =
         _audioPlayer.onPlayerCompletion.listen((event) {
       _onComplete();
       setState(() {
-        _position = _duration;
+        _position = const Duration();
       });
+    });
+
+    _playerStateSubscription =
+        _audioPlayer.onPlayerStateChanged.listen((state) {
+      print('Current player state: $state');
+      setState(() => _playerState = state);
     });
 
     _playerErrorSubscription = _audioPlayer.onPlayerError.listen((msg) {
@@ -202,18 +214,16 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() {
-          _audioPlayerState = state;
+          _playerState = state;
         });
       }
     });
 
     _audioPlayer.onNotificationPlayerStateChanged.listen((state) {
       if (mounted) {
-        setState(() => _audioPlayerState = state);
+        setState(() => _playerState = state);
       }
     });
-
-    _playingRouteState = PlayingRoute.SPEAKERS;
   }
 
   Future<int> _play() async {
@@ -245,19 +255,42 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     return result;
   }
 
-  Future<int> _stop() async {
-    final result = await _audioPlayer.stop();
+  Future<int> _rewind() async {
+    Duration _tempPosition = Duration(seconds: max(0, _position!.inSeconds - 10));
+    var result = await _seek(_tempPosition);
+    return result;
+  }
+
+  Future<int> _seek(Duration _tempPosition) async {
+    var result = await _audioPlayer.seek(_tempPosition);
     if (result == 1) {
-      setState(() {
-        _playerState = PlayerState.STOPPED;
-        _position = const Duration();
-      });
+      setState(() => _position = _tempPosition);
     }
     return result;
   }
 
+  Future<int> _forward() async {
+    Duration _tempPosition = Duration(seconds: min(_duration!.inSeconds, _position!.inSeconds + 10));
+    var result = await _seek(_tempPosition);
+    return result;
+  }
+
+  //
+  // Future<int> _stop() async {
+  //   final result = await _audioPlayer.stop();
+  //   if (result == 1) {
+  //     setState(() {
+  //       _playerState = PlayerState.STOPPED;
+  //       _position = const Duration();
+  //     });
+  //   }
+  //   return result;
+  // }
+
   void _onComplete() {
-    setState(() => _playerState = PlayerState.STOPPED);
+    setState(() {
+      _playerState = PlayerState.STOPPED;
+    });
   }
 
   // convert duration to [HH:]mm:ss format

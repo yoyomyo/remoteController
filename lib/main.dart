@@ -61,7 +61,7 @@ class _MusicAppState extends State<MusicApp> {
           ),
           child: Padding(
               padding:
-                  const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+                  const EdgeInsets.symmetric(vertical: 40.0, horizontal: 24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.max,
@@ -72,31 +72,31 @@ class _MusicAppState extends State<MusicApp> {
                       "Music Box",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 38.0,
+                        fontSize: 18.0,
                         fontWeight: FontWeight.bold,
                       ),
                     );
                   }),
                   const SizedBox(
-                    height: 24.0,
+                    height: 10.0,
                   ),
                   Center(
                       child: SizedBox(
                     width: MediaQuery.of(context).size.width,
                     child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20.0),
+                        borderRadius: BorderRadius.circular(10.0),
                         child: Image.asset("assets/album_cover.jpg",
                             fit: BoxFit.fitWidth)),
                   )),
                   const SizedBox(
-                    height: 18.0,
+                    height: 8.0,
                   ),
                   const Center(
                     child: Text(
                       "Simple Stories",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 32.0,
+                        fontSize: 12.0,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -109,8 +109,8 @@ class _MusicAppState extends State<MusicApp> {
                       decoration: BoxDecoration(
                         color: Colors.purple.shade50,
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(30.0),
-                          topRight: Radius.circular(30.0),
+                          topLeft: Radius.circular(25.0),
+                          topRight: Radius.circular(25.0),
                         ),
                       ),
                       child: SizedBox(
