@@ -33,7 +33,8 @@ class MusicApp extends StatefulWidget {
 
 class _MusicAppState extends State<MusicApp> {
   String? localFilePath;
-  late DataSync dataSync = DataSync();
+  DataSync dataSync = DataSync();
+  late PlayerWidget playerWidget;
 
   @override
   void initState() {
@@ -44,6 +45,10 @@ class _MusicAppState extends State<MusicApp> {
     } else {
       localFilePath = 'waterfalls.mp3';
     }
+
+    playerWidget = PlayerWidget(
+        url: localFilePath!,
+        playerStateRef: FirebaseDatabase.instance.reference().child('/player'));
   }
 
   @override
@@ -57,7 +62,9 @@ class _MusicAppState extends State<MusicApp> {
         await dataSync._signInAnonymously();
         break;
       case 'Connect':
-        await dataSync._connect();
+        Future<bool> connected = dataSync._connect();
+        await connected.then(
+            (bool isSubscriber) => playerWidget.listenToChange(isSubscriber));
         break;
     }
   }
@@ -133,13 +140,7 @@ class _MusicAppState extends State<MusicApp> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            PlayerWidget(
-                                url: localFilePath!,
-                                playerStateRef: FirebaseDatabase.instance
-                                    .reference()
-                                    .child('/player'))
-                          ],
+                          children: [playerWidget],
                         ),
                       ),
                     ),
@@ -149,15 +150,20 @@ class _MusicAppState extends State<MusicApp> {
 }
 
 class DataSync {
-  late FirebaseAuth _auth;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseDatabase db = FirebaseDatabase.instance;
   DatabaseError? _error;
 
-  DataSync() {
-    _auth = FirebaseAuth.instance;
+  Future<bool> _connect() async {
+    if (_auth.currentUser != null) {
+      Future<bool> isSubscriber = _existOtherOnlineDevices();
+      isSubscriber.then((bool isSubscriber) => addDevice(isSubscriber));
+      return isSubscriber;
+    }
+    return Future.value(false);
   }
 
-  Future<void> _connect() async {
-    final FirebaseDatabase db = FirebaseDatabase.instance;
+  Future<void> addDevice(bool isSubscriber) async {
     if (_auth.currentUser != null) {
       String uid = _auth.currentUser!.uid;
       // Create reference to this device's specific status node
@@ -174,6 +180,7 @@ class DataSync {
       var isOnlineForDatabase = {
         'state': 'online',
         'last_changed': ServerValue.timestamp,
+        'subscriber': isSubscriber,
       };
 
       FirebaseDatabase.instance
@@ -190,6 +197,24 @@ class DataSync {
         });
       });
     }
+  }
+
+  Future<bool> _existOtherOnlineDevices() async {
+    bool existOtherOnlineDevices = false;
+    return db
+        .reference()
+        .child('/devices')
+        .once()
+        .then((DataSnapshot snapshot) {
+      Map<dynamic, dynamic> deviceMap = snapshot.value;
+      deviceMap.forEach((key, value) {
+        String state = value['state'];
+        if (state == 'online') {
+          existOtherOnlineDevices = true;
+        }
+      });
+      return existOtherOnlineDevices;
+    });
   }
 
   Future<void> _signInAnonymously() async {

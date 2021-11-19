@@ -13,17 +13,24 @@ class PlayerWidget extends StatefulWidget {
   final String url;
   final PlayerMode mode;
   final DatabaseReference playerStateRef;
+  late _PlayerWidgetState playerWidgetState;
 
-  const PlayerWidget({
-    Key? key,
-    required this.url,
-    this.mode = PlayerMode.MEDIA_PLAYER,
-    required this.playerStateRef,
-  }) : super(key: key);
+  PlayerWidget(
+      {Key? key,
+      required this.url,
+      this.mode = PlayerMode.MEDIA_PLAYER,
+      required this.playerStateRef})
+      : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
-    return _PlayerWidgetState(url, mode, playerStateRef);
+    playerWidgetState = _PlayerWidgetState(url, mode, playerStateRef);
+    return playerWidgetState;
+  }
+
+  void listenToChange(bool isSubscriber) {
+    playerWidgetState.listenToChange(isSubscriber);
+    print('player start to listen to DB change, isSubscriber {$isSubscriber}');
   }
 }
 
@@ -31,6 +38,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   String url;
   PlayerMode mode;
   DatabaseReference playerStateRef;
+  DatabaseError? _error;
+
+  late StreamSubscription<Event> _playerDBSubscription;
+  late bool _isSubscriber = true;
 
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
@@ -53,10 +64,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   _PlayerWidgetState(this.url, this.mode, this.playerStateRef);
 
+  late Slider _slider;
+  late double _sliderPosition;
+
   @override
   void initState() {
     super.initState();
     _initAudioPlayer();
+    _sliderPosition = 0.0;
   }
 
   @override
@@ -68,11 +83,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     _playerErrorSubscription?.cancel();
     _playerStateSubscription?.cancel();
     _playerControlCommandSubscription?.cancel();
+
+    _playerDBSubscription.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    _slider = Slider(onChanged: _onSliderChangeHandler, value: _sliderPosition);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -89,25 +107,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                   ),
                   SizedBox(
                     width: MediaQuery.of(context).size.width / 2,
-                    child: Slider(
-                      onChanged: (v) {
-                        final duration = _duration;
-                        if (duration == null) {
-                          return;
-                        }
-                        final Position = v * duration.inMilliseconds;
-                        _audioPlayer
-                            .seek(Duration(milliseconds: Position.round()));
-                      },
-                      value: (_position != null &&
-                              _duration != null &&
-                              _position!.inMilliseconds > 0 &&
-                              _position!.inMilliseconds <
-                                  _duration!.inMilliseconds)
-                          ? _position!.inMilliseconds /
-                              _duration!.inMilliseconds
-                          : 0.0,
-                    ),
+                    child: _slider,
                   ),
                   Text(
                     _duration != null ? _durationText : '00:00',
@@ -127,7 +127,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                   ),
                   IconButton(
                     key: const Key('play_button'),
-                    onPressed: _playerState == PlayerState.PLAYING ? _pause : _play,
+                    onPressed:
+                        _playerState == PlayerState.PLAYING ? _pause : _play,
                     iconSize: 48.0,
                     icon: _playerState == PlayerState.PLAYING
                         ? const Icon(Icons.pause)
@@ -149,6 +150,19 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         ),
       ],
     );
+  }
+
+  void _onSliderChangeHandler(v) {
+    final duration = _duration;
+    if (duration == null) {
+      return;
+    }
+    final Position = v * duration.inMilliseconds;
+    _sliderPosition = v;
+    _position = Duration(milliseconds: Position.round());
+    _audioPlayer.seek(_position!);
+
+    _updatePlayerDBState();
   }
 
   void _initAudioPlayer() {
@@ -181,6 +195,9 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
     _positionSubscription =
         _audioPlayer.onAudioPositionChanged.listen((p) => setState(() {
+              if (kIsWeb && _playerState == PlayerState.PAUSED) {
+                return;
+              }
               _position = p;
               if (_position == _duration) {
                 _onComplete();
@@ -247,16 +264,22 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       _audioCache.play(url);
       _playerState = PlayerState.PLAYING;
     }
-    updatePlayerDBState();
+    _updatePlayerDBState();
     return result;
   }
 
   Future<int> _pause() async {
+    final playPosition = (_position != null &&
+            _duration != null &&
+            _position!.inMilliseconds > 0 &&
+            _position!.inMilliseconds < _duration!.inMilliseconds)
+        ? _position
+        : null;
     final result = await _audioPlayer.pause();
     if (result == 1) {
-      setState(() => _playerState = PlayerState.PAUSED);
+      setState(() => {_playerState = PlayerState.PAUSED});
     }
-    updatePlayerDBState();
+    _updatePlayerDBState();
     return result;
   }
 
@@ -300,8 +323,20 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     });
   }
 
-  void updatePlayerDBState() async {
-    playerStateRef.set(_playerState.index);
+  void _updatePlayerDBState() async {
+    if (_isSubscriber) {
+      // subscribers do not need to udpate DB
+      return;
+    }
+    try {
+      var playerSnapshot = {
+        'state': _playerState.index,
+        'slider_position': _slider.value
+      };
+      playerStateRef.set(playerSnapshot);
+    } catch (e) {
+      print('updated playerState with error');
+    }
   }
 
   // convert duration to [HH:]mm:ss format
@@ -313,5 +348,41 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       return '${twoDigitMinutes}:${twoDigitSeconds}';
     }
     return '${twoDigits(duration?.inHours)}:${twoDigitMinutes}:${twoDigitSeconds}';
+  }
+
+  void listenToChange(bool isSubscriber) async {
+    _isSubscriber = isSubscriber;
+    if (_isSubscriber) {
+      _playerDBSubscription = playerStateRef.onValue.listen((Event event) {
+        setState(() {
+          _error = null;
+          if (event != null && event.snapshot != null) {
+            int state = event.snapshot.value['state'];
+            _playerState = PlayerState.values[state];
+            switch (_playerState) {
+              case PlayerState.PLAYING:
+                _play();
+                break;
+              case PlayerState.PAUSED:
+                _pause();
+                break;
+            }
+            try {
+              setState(() {
+                _sliderPosition = event.snapshot.value['slider_position'];
+                _slider.onChanged!(_sliderPosition);
+              });
+            } catch (e) {
+              print('trouble updating slider');
+            }
+          }
+        });
+      }, onError: (Object o) {
+        final DatabaseError error = o as DatabaseError;
+        setState(() {
+          _error = error;
+        });
+      });
+    }
   }
 }
