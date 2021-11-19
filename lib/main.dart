@@ -33,7 +33,8 @@ class MusicApp extends StatefulWidget {
 
 class _MusicAppState extends State<MusicApp> {
   String? localFilePath;
-  late DataSync dataSync = DataSync();
+  DataSync dataSync = DataSync();
+  late PlayerWidget playerWidget;
 
   @override
   void initState() {
@@ -44,6 +45,10 @@ class _MusicAppState extends State<MusicApp> {
     } else {
       localFilePath = 'waterfalls.mp3';
     }
+
+    playerWidget = PlayerWidget(
+        url: localFilePath!,
+        playerStateRef: FirebaseDatabase.instance.reference().child('/player'));
   }
 
   @override
@@ -57,7 +62,8 @@ class _MusicAppState extends State<MusicApp> {
         await dataSync._signInAnonymously();
         break;
       case 'Connect':
-        await dataSync._connect();
+        Future<void> connected = dataSync._connect();
+        await connected.then((_) => playerWidget.listenToChange());
         break;
     }
   }
@@ -133,13 +139,7 @@ class _MusicAppState extends State<MusicApp> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            PlayerWidget(
-                                url: localFilePath!,
-                                playerStateRef: FirebaseDatabase.instance
-                                    .reference()
-                                    .child('/player'))
-                          ],
+                          children: [playerWidget],
                         ),
                       ),
                     ),
@@ -151,7 +151,6 @@ class _MusicAppState extends State<MusicApp> {
 class DataSync {
   late FirebaseAuth _auth;
   DatabaseError? _error;
-
   DataSync() {
     _auth = FirebaseAuth.instance;
   }
