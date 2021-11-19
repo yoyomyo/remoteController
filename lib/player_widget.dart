@@ -15,12 +15,12 @@ class PlayerWidget extends StatefulWidget {
   final DatabaseReference playerStateRef;
   late _PlayerWidgetState playerWidgetState;
 
-  PlayerWidget({
-    Key? key,
-    required this.url,
-    this.mode = PlayerMode.MEDIA_PLAYER,
-    required this.playerStateRef,
-  }) : super(key: key);
+  PlayerWidget(
+      {Key? key,
+      required this.url,
+      this.mode = PlayerMode.MEDIA_PLAYER,
+      required this.playerStateRef})
+      : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -28,9 +28,9 @@ class PlayerWidget extends StatefulWidget {
     return playerWidgetState;
   }
 
-  void listenToChange() {
-    playerWidgetState.listenToChange();
-    print('player start to listen to DB change');
+  void listenToChange(bool isSubscriber) {
+    playerWidgetState.listenToChange(isSubscriber);
+    print('player start to listen to DB change, isSubscriber {$isSubscriber}');
   }
 }
 
@@ -41,6 +41,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   DatabaseError? _error;
 
   late StreamSubscription<Event> _playerDBSubscription;
+  late bool _isSubscriber = true;
+
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
 
@@ -62,10 +64,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   _PlayerWidgetState(this.url, this.mode, this.playerStateRef);
 
+  late Slider _slider;
+  late double _sliderPosition;
+
   @override
   void initState() {
     super.initState();
     _initAudioPlayer();
+    _sliderPosition = 0.0;
   }
 
   @override
@@ -84,6 +90,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    _slider = Slider(onChanged: _onSliderChangeHandler, value: _sliderPosition);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -100,17 +107,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                   ),
                   SizedBox(
                     width: MediaQuery.of(context).size.width / 2,
-                    child: Slider(
-                      onChanged: _onSliderChangeHandler,
-                      value: (_position != null &&
-                              _duration != null &&
-                              _position!.inMilliseconds > 0 &&
-                              _position!.inMilliseconds <
-                                  _duration!.inMilliseconds)
-                          ? _position!.inMilliseconds /
-                              _duration!.inMilliseconds
-                          : 0.0,
-                    ),
+                    child: _slider,
                   ),
                   Text(
                     _duration != null ? _durationText : '00:00',
@@ -161,7 +158,11 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       return;
     }
     final Position = v * duration.inMilliseconds;
-    _audioPlayer.seek(Duration(milliseconds: Position.round()));
+    _sliderPosition = v;
+    _position = Duration(milliseconds: Position.round());
+    _audioPlayer.seek(_position!);
+
+    _updatePlayerDBState();
   }
 
   void _initAudioPlayer() {
@@ -197,12 +198,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
               if (kIsWeb && _playerState == PlayerState.PAUSED) {
                 return;
               }
-              // if (p != null &&
-              //     _duration != null &&
-              //     p!.inMilliseconds > _duration!.inMilliseconds) {
-              //     print('onAudioPositionChanged: {$p}, {$_duration}');
-              //   return;
-              // }
               _position = p;
               if (_position == _duration) {
                 _onComplete();
@@ -259,7 +254,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             _position!.inMilliseconds < _duration!.inMilliseconds)
         ? _position
         : null;
-    print('***playing***{$playPosition}***');
     var result = 0;
     if (kIsWeb) {
       result = await _audioPlayer.play(url, position: playPosition);
@@ -281,7 +275,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             _position!.inMilliseconds < _duration!.inMilliseconds)
         ? _position
         : null;
-    print('***pause***{$playPosition}***');
     final result = await _audioPlayer.pause();
     if (result == 1) {
       setState(() => {_playerState = PlayerState.PAUSED});
@@ -331,9 +324,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   void _updatePlayerDBState() async {
+    if (_isSubscriber) {
+      // subscribers do not need to udpate DB
+      return;
+    }
     try {
       var playerSnapshot = {
         'state': _playerState.index,
+        'slider_position': _slider.value
       };
       playerStateRef.set(playerSnapshot);
     } catch (e) {
@@ -352,26 +350,39 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     return '${twoDigits(duration?.inHours)}:${twoDigitMinutes}:${twoDigitSeconds}';
   }
 
-  void listenToChange() async {
-    _playerDBSubscription = playerStateRef.onValue.listen((Event event) {
-      setState(() {
-        _error = null;
-        int state = event.snapshot.value['state'];
-        _playerState = PlayerState.values[state];
-        switch (_playerState) {
-          case PlayerState.PLAYING:
-            _play();
-            break;
-          case PlayerState.PAUSED:
-            _pause();
-            break;
-        }
+  void listenToChange(bool isSubscriber) async {
+    _isSubscriber = isSubscriber;
+    if (_isSubscriber) {
+      _playerDBSubscription = playerStateRef.onValue.listen((Event event) {
+        setState(() {
+          _error = null;
+          if (event != null && event.snapshot != null) {
+            int state = event.snapshot.value['state'];
+            _playerState = PlayerState.values[state];
+            switch (_playerState) {
+              case PlayerState.PLAYING:
+                _play();
+                break;
+              case PlayerState.PAUSED:
+                _pause();
+                break;
+            }
+            try {
+              setState(() {
+                _sliderPosition = event.snapshot.value['slider_position'];
+                _slider.onChanged!(_sliderPosition);
+              });
+            } catch (e) {
+              print('trouble updating slider');
+            }
+          }
+        });
+      }, onError: (Object o) {
+        final DatabaseError error = o as DatabaseError;
+        setState(() {
+          _error = error;
+        });
       });
-    }, onError: (Object o) {
-      final DatabaseError error = o as DatabaseError;
-      setState(() {
-        _error = error;
-      });
-    });
+    }
   }
 }
