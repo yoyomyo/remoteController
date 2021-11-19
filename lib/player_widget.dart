@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audioplayers/notifications.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +36,7 @@ class PlayerWidget extends StatefulWidget {
 }
 
 class _PlayerWidgetState extends State<PlayerWidget> {
-  String url;
+  String _url;
   PlayerMode mode;
   DatabaseReference playerStateRef;
   DatabaseError? _error;
@@ -45,6 +46,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   late AudioPlayer _audioPlayer;
   late AudioCache _audioCache;
+  late String _selectLocation;
 
   //PlayerState? _audioPlayerState;
   // TODO: remove hard coded duration
@@ -58,11 +60,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription? _playerErrorSubscription;
   StreamSubscription? _playerStateSubscription;
   StreamSubscription<PlayerControlCommand>? _playerControlCommandSubscription;
+  Stream<QuerySnapshot>? _song;
 
   String get _durationText => _durationToString(_duration);
+
   String get _positionText => _durationToString(_position);
 
-  _PlayerWidgetState(this.url, this.mode, this.playerStateRef);
+  _PlayerWidgetState(this._url, this.mode, this.playerStateRef);
 
   late Slider _slider;
   late double _sliderPosition;
@@ -72,6 +76,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     super.initState();
     _initAudioPlayer();
     _sliderPosition = 0.0;
+    _song = FirebaseFirestore.instance.collection('songlist').snapshots();
   }
 
   @override
@@ -99,6 +104,52 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    StreamBuilder<QuerySnapshot>(
+                      stream: _song,
+                      builder: (BuildContext context,
+                          AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.hasError) {
+                          return Text('Something went wrong');
+                        }
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Text("Loading");
+                        }
+
+                        return DropdownButton<String>(
+                          value: _url,
+                          onChanged: (newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _url = newValue;
+                                if (_playerState == PlayerState.PLAYING) {
+                                  _position = const Duration();
+                                  _play();
+                                }
+                              });
+                            }
+                          },
+                          iconEnabledColor: Colors.deepPurpleAccent,
+                          style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 16),
+                          underline: Text(''),
+                          items: snapshot.data!.docs
+                              .map((DocumentSnapshot document) {
+                            Map<String, dynamic> data =
+                                document.data()! as Map<String, dynamic>;
+                            return DropdownMenuItem<String>(
+                              value: data['url'],
+                              child: Text(data['songname']),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    )
+                  ]),
               Row(
                 children: [
                   Text(
@@ -150,6 +201,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         ),
       ],
     );
+  }
+
+  void _onSongChange(v) {
+    setState(() {});
   }
 
   void _onSliderChangeHandler(v) {
@@ -256,12 +311,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         : null;
     var result = 0;
     if (kIsWeb) {
-      result = await _audioPlayer.play(url, position: playPosition);
+      result =
+          await _audioPlayer.play("assets/" + _url, position: playPosition);
       if (result == 1) {
         setState(() => _playerState = PlayerState.PLAYING);
       }
     } else {
-      _audioCache.play(url);
+      _audioCache.play(_url);
       _playerState = PlayerState.PLAYING;
     }
     _updatePlayerDBState();
@@ -386,3 +442,40 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     }
   }
 }
+
+//
+// class SongInformation extends StatefulWidget {
+//   @override
+//   _SongInformationState createState() => _SongInformationState();
+// }
+//
+// class _SongInformationState extends State<SongInformation> {
+//   final Stream<QuerySnapshot> _song = FirebaseFirestore.instance.collection('songlist').snapshots();
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return StreamBuilder<QuerySnapshot>(
+//       stream: _song,
+//       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+//         if (snapshot.hasError) {
+//           return Text('Something went wrong');
+//         }
+//
+//         if (snapshot.connectionState == ConnectionState.waiting) {
+//           return Text("Loading");
+//         }
+//
+//         return DropdownButton<String>(
+//           onChanged: _play(),
+//           items: snapshot.data!.docs.map((DocumentSnapshot document) {
+//             Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+//             return DropdownMenuItem<String>(
+//               value: data['url'],
+//               child: Text(data['songname']),
+//             );
+//           }).toList(),
+//         );
+//       },
+//     );
+//   }
+// }
