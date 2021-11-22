@@ -39,12 +39,7 @@ class _MusicAppState extends State<MusicApp> {
   @override
   void initState() {
     super.initState();
-    if (kIsWeb) {
-      // web needs the assets path
-      localFilePath = 'assets/waterfalls.mp3';
-    } else {
-      localFilePath = 'waterfalls.mp3';
-    }
+    localFilePath = 'waterfalls.mp3';
 
     playerWidget = PlayerWidget(
         url: localFilePath!,
@@ -115,19 +110,6 @@ class _MusicAppState extends State<MusicApp> {
                         ))),
                     const SizedBox(
                       height: 18.0,
-                    ),
-                    const Center(
-                      child: Text(
-                        "Simple Stories",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28.0,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 24,
                     ),
                     SizedBox(
                       width: MediaQuery.of(context).size.width,
