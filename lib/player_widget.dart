@@ -71,6 +71,9 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   late Slider _slider;
   late double _sliderPosition;
 
+  late Slider _slider;
+  late double _sliderPosition;
+
   @override
   void initState() {
     super.initState();
@@ -442,40 +445,3 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     }
   }
 }
-
-//
-// class SongInformation extends StatefulWidget {
-//   @override
-//   _SongInformationState createState() => _SongInformationState();
-// }
-//
-// class _SongInformationState extends State<SongInformation> {
-//   final Stream<QuerySnapshot> _song = FirebaseFirestore.instance.collection('songlist').snapshots();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return StreamBuilder<QuerySnapshot>(
-//       stream: _song,
-//       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-//         if (snapshot.hasError) {
-//           return Text('Something went wrong');
-//         }
-//
-//         if (snapshot.connectionState == ConnectionState.waiting) {
-//           return Text("Loading");
-//         }
-//
-//         return DropdownButton<String>(
-//           onChanged: _play(),
-//           items: snapshot.data!.docs.map((DocumentSnapshot document) {
-//             Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
-//             return DropdownMenuItem<String>(
-//               value: data['url'],
-//               child: Text(data['songname']),
-//             );
-//           }).toList(),
-//         );
-//       },
-//     );
-//   }
-// }
